@@ -356,6 +356,9 @@ namespace ДЗ1
             string[] stringLines_U = getStringArray(fileName_u);//массив без повторений
             string[] stringLines_I = getStringArray(fileName_i);
 
+            Console.WriteLine(stringLines_I.ToString());
+            Console.WriteLine(stringLines_I[10]);
+
             List<double> doubleLines_U = new List<double>();
             List<double> doubleLines_I = new List<double>();
 
@@ -393,6 +396,8 @@ namespace ДЗ1
 
                 }
             }
+
+            
 
             List<double> cal_integral_p = new List<double>();
             double p;
@@ -499,6 +504,12 @@ namespace ДЗ1
                 series4.Points.AddXY(b, cal_integral_q[b]);
             }
             chart1.Series.Add(series4);
+
+
+            chart1.ChartAreas[0].AxisX.Minimum = 0;
+            chart1.ChartAreas[0].AxisX.Maximum = 79;
+            chart1.ChartAreas[0].AxisY.Minimum = 0;
+            chart1.ChartAreas[0].AxisY.Maximum = 2500;
         }
 
     
