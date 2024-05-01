@@ -32,7 +32,6 @@ namespace ДЗ1
             {
                 fileName_u = openFileDialog.FileName;
                 ReadData(fileName_u);
-                //string shortFileName = Path.GetFileName(fileName);
                 labelName.Text = $"{fileName_u}";
             } 
         }
@@ -45,7 +44,6 @@ namespace ДЗ1
             {
                 fileName_i = openFileDialog.FileName;
                 ReadData(fileName_i);
-                //string shortFileName = Path.GetFileName(fileName);
                 labelNew.Text = $"{fileName_i}";
             }
         }
@@ -97,15 +95,6 @@ namespace ДЗ1
             }
 
 
-          /*  Console.WriteLine("проверка массива");
-
-            for (int i = 0; i < lastDoubleArray.Length; i++)
-            {
-                Console.WriteLine(lastDoubleArray[i]);
-            }
-          */
-
-
             return lastDoubleArray;
         }
 
@@ -127,14 +116,13 @@ namespace ДЗ1
 
             string filePath1 = labelName.Text;
             string filePath2 = labelNew.Text;
-            if (!File.Exists(filePath1)) //|| (!File.Exists(filePath2)))
+            if (!File.Exists(filePath1))
             {
                 MessageBox.Show("Файл не найден.");
                 return;
             }
 
             string[] oldLines = getOldLines(fileName);
-            //string[] oldLines = File.ReadAllLines(fileName);
             string[] lines = new string[oldLines.Length / 2 + (oldLines.Length % 2 == 0 ? 0 : 1)];
 
             try
@@ -155,12 +143,10 @@ namespace ДЗ1
                 else if (selectedElement == "Спектр сигнала")
                 {
                     fileName = fileName_i;
-                    //double[] signalData_i = getLastDoubleArray(getStringArray(fileName));
                     PlotSignal_new(fileName);
                 }
                 else if (selectedElement == "График p(t)")
                 {
-                    //double[] signalData_i = getLastDoubleArray(getStringArray(fileName));
                     PlotPSignal(fileName_i, fileName_u);
                 }
                 else if (selectedElement == "Кривые P(t), Q(t), S(t)")
@@ -209,16 +195,6 @@ namespace ДЗ1
              chart1.ChartAreas[0].AxisX.Maximum = signalData.Length * secondsPer; // Максимальное значение оси X
              chart1.ChartAreas[0].AxisY.Minimum = signalData.Min(); // Минимальное значение оси Y (минимальное значение данных)
              chart1.ChartAreas[0].AxisY.Maximum = signalData.Max(); // Максимальное значение оси Y (максимальное значение данных
-
-            /*
-             chart1.ChartAreas[0].AxisX.Minimum = 0;
-             chart1.ChartAreas[0].AxisX.Maximum = Math.Round(signalData.Length * secondsPer, 2);
-             chart1.ChartAreas[0].AxisY.Minimum = Math.Round(signalData.Min(), 2);
-             chart1.ChartAreas[0].AxisY.Maximum = Math.Round(signalData.Max(), 2);
-            */
-            //chart1.Legends.Add(new Legend());
-
-            //chart1.Update();
         }
 
         private void PlotSignal_new(string fileName)
@@ -364,16 +340,16 @@ namespace ДЗ1
 
         private void PlotSignal_QS(string fileName_i, string fileName_u)
         {
-            string[] stringLines_U = getStringArray(fileName_u);
+            string[] stringLines_U = getStringArray(fileName_u);//массив без повторений
             string[] stringLines_I = getStringArray(fileName_i);
 
             List<double> doubleLines_U = new List<double>();
             List<double> doubleLines_I = new List<double>();
 
 
-            for (int i = 0; i < 10 && i < stringLines_U.Length; i++)
+            for (int d = 0; d < stringLines_U.Length; d++)
             {
-                string line = stringLines_U[i];
+                string line = stringLines_U[d];
 
                 string[] parts = line.Split('\t');
 
@@ -388,9 +364,9 @@ namespace ДЗ1
                 }
             }
 
-            for (int i = 0; i < 10 && i < stringLines_I.Length; i++)
+            for (int a = 0; a < stringLines_I.Length; a++)
             {
-                string line = stringLines_I[i]; 
+                string line = stringLines_I[a]; 
 
                 string[] parts = line.Split('\t');
 
@@ -405,21 +381,20 @@ namespace ДЗ1
                 }
             }
 
-            double[] signalData = new double[800];
-
-            for (int i = 0; i < signalData.Length; i++)
+            List<double> cal_integral_p = new List<double>();
+            double p;
+            List<int> cal_ends = new List<int>();
+            for (int z = 0; z < doubleLines_U.Count; z+= 800)
             {
-                signalData[i] = doubleLines_U[i] * doubleLines_I[i];
-            }
+                p = 0;
+                int end = Math.Min(z + 800, doubleLines_U.Count);
+                cal_ends.Add(end);
+                for (int j = z; j < end; j++)
+                {
+                    p += doubleLines_U[j] * doubleLines_I[j];
+                }
 
-            double[] p = new double[800]; 
-
-            double dt = 1.0 / 800;
-
-            double integral = 0;
-            for (int i = 1; i < signalData.Length; i++)
-            {
-                integral += 0.5 * (signalData[i - 1] + signalData[i]) * dt;
+                cal_integral_p.Add(0.00125 * p);
             }
 
             chart1.Series.Clear();
@@ -430,9 +405,10 @@ namespace ДЗ1
             series.Color = Color.Red;
 
             double secondsPer = 0.00125;
-            for (double i = 0; i < 1; i+= secondsPer)
+
+            for (int j = 0; j < cal_integral_p.Count; j+= 1)
             {
-                series.Points.AddXY(i * secondsPer, integral);
+                series.Points.AddXY(j, cal_integral_p[j]);
             }
             chart1.Series.Add(series);
             
@@ -443,56 +419,70 @@ namespace ДЗ1
 
 
 
-
-            double integral_U2 = 0;
-
-            for (int i = 0; i < doubleLines_U.Count - 1; i++)
+            List<double> cal_integral_u = new List<double>();
+            double u;
+            for (int z = 0; z < doubleLines_U.Count; z += 800)
             {
-                double trapezoidArea = (doubleLines_U[i] * doubleLines_U[i] + doubleLines_U[i + 1] * doubleLines_U[i + 1]) * dt / 2;
-                integral_U2 += trapezoidArea;
+                u = 0;
+                int end = Math.Min(z + 800, doubleLines_U.Count);
+                for (int j = z; j < end; j++)
+                {
+                    u += Math.Pow(doubleLines_U[j], 2);
+                }
+
+                cal_integral_u.Add(Math.Sqrt(0.00125 * u));
             }
 
-            double sqrtIntegral_U = Math.Sqrt(integral_U2);
 
-
-
-            double integral_I2 = 0;
-
-            for (int i = 0; i < doubleLines_I.Count - 1; i++)
+            List<double> cal_integral_i = new List<double>();
+            double i;
+            for (int z = 0; z < doubleLines_I.Count; z += 800)
             {
-                double trapezoidArea = (doubleLines_I[i] * doubleLines_I[i] + doubleLines_I[i + 1] * doubleLines_I[i + 1]) * dt / 2;
-                integral_I2 += trapezoidArea;
+                i = 0;
+                int end = Math.Min(z + 800, doubleLines_I.Count);
+                for (int j = z; j < end; j++)
+                {
+                    i += Math.Pow(doubleLines_I[j], 2);
+                }
+
+                cal_integral_i.Add(Math.Sqrt(0.00125 * i));
             }
 
-            double sqrtIntegral_I = Math.Sqrt(integral_I2);
+            List<double> cal_integral_s = new List<double>();
+            for (int x = 0; x < cal_integral_i.Count; x++)
+            {
+                cal_integral_s.Add(cal_integral_i[x] * cal_integral_u[x]);
+            }
 
 
-
+            //chart1.Series.Clear();
             Series series3 = new Series();
             series3.ChartType = SeriesChartType.Line;
 
             series3.Name = "S";
             series3.Color = Color.Green;
 
-            for (double i = 0; i < 1; i += secondsPer)
+            for (int j = 0; j < cal_integral_s.Count; j += 1)
             {
-                series3.Points.AddXY(i * secondsPer, sqrtIntegral_U* sqrtIntegral_I);
+                series3.Points.AddXY(j, cal_integral_s[j]);
             }
             chart1.Series.Add(series3);
-            //chart1.Update();
 
 
 
-
-            double q = Math.Sqrt(Math.Pow((sqrtIntegral_U * sqrtIntegral_I), 2) - Math.Pow(integral, 2));
+            List<double> cal_integral_q = new List<double>();
+            for (int q = 0; q < cal_integral_s.Count; q++)
+            {
+                cal_integral_q.Add(Math.Sqrt(Math.Pow(cal_integral_s[q], 2) - Math.Pow(cal_integral_p[q], 2)));
+            }
 
             Series series4 = new Series();
             series4.ChartType = SeriesChartType.Line;
             series4.Name = "Q";
             series4.Color = Color.Purple;
-            for (double i = 0; i < 1; i += secondsPer)
+            for (int b = 0; b < cal_integral_q.Count; b += 1)
             {
-                series4.Points.AddXY(i * secondsPer, q);
+                series4.Points.AddXY(b, cal_integral_q[b]);
             }
             chart1.Series.Add(series4);
         }
