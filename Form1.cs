@@ -157,6 +157,10 @@ namespace ДЗ1
                 {
                     PlotSignal_amplitude(fileName_i);
                 }
+                else if (selectedElement == "Гармоники(фаза)")
+                {
+                    PlotSignal_phase(fileName_i);
+                }
 
             }
             catch (Exception ex)
@@ -181,13 +185,13 @@ namespace ДЗ1
 
             if (fileName == fileName_u)
             {
-                chart1.ChartAreas[0].AxisX.Title = "хуй с U";
-                chart1.ChartAreas[0].AxisY.Title = "хуи с U";
+                chart1.ChartAreas[0].AxisX.Title = "Время, с";
+                chart1.ChartAreas[0].AxisY.Title = "Напряжение, В";
             }
             else if (fileName == fileName_i)
             {
-                chart1.ChartAreas[0].AxisX.Title = "хуй с I";
-                chart1.ChartAreas[0].AxisY.Title = "хуи с I";
+                chart1.ChartAreas[0].AxisX.Title = "Время, с";
+                chart1.ChartAreas[0].AxisY.Title = "Сила тока, А";
             }
 
            
@@ -244,8 +248,8 @@ namespace ДЗ1
             }
 
             chart1.Series.Clear();
-            chart1.ChartAreas[0].AxisX.Title = "Время";
-            chart1.ChartAreas[0].AxisY.Title = "Амплитуда";
+            chart1.ChartAreas[0].AxisX.Title = "Время, с";
+            chart1.ChartAreas[0].AxisY.Title = "Частота, Гц";
 
             Series series = new Series();
             series.ChartType = SeriesChartType.Line;
@@ -277,47 +281,12 @@ namespace ДЗ1
 
         private void PlotPSignal(string fileName_i, string fileName_u)
         {
-            string[] stringLines_U = getStringArray(fileName_u);
-            string[] stringLines_I = getStringArray(fileName_i);
 
-            List<double> doubleLines_U = new List<double>();
-            List<double> doubleLines_I = new List<double>();
+            double[] doubleLines_U = getLastDoubleArray(getStringArray(fileName_u));
+            double[] doubleLines_I = getLastDoubleArray(getStringArray(fileName_i));
 
 
-            for (int i = 0; i < 10 && i < stringLines_U.Length; i++)
-            {
-                string line = stringLines_U[i]; 
-
-                string[] parts = line.Split('\t');
-
-                foreach (string part in parts)
-                {
-                    double number;
-                    if (double.TryParse(part, out number))
-                    {
-                        doubleLines_U.Add(number);
-                    }
-
-                }
-            }
-
-            for (int i = 0; i < 10 && i < stringLines_I.Length; i++)
-            {
-                string line = stringLines_I[i]; 
-
-                string[] parts = line.Split('\t');
-
-                foreach (string part in parts)
-                {
-                    double number;
-                    if (double.TryParse(part, out number))
-                    {
-                        doubleLines_I.Add(number);
-                    }
-
-                }
-            }
-            double[] signalData = new double[800];
+            double[] signalData = new double[80];
 
             for (int i = 0; i < signalData.Length; i++)
             {
@@ -337,8 +306,8 @@ namespace ДЗ1
 
             chart1.Series.Add(series);
 
-            chart1.ChartAreas[0].AxisX.Title = "хуй с p";
-            chart1.ChartAreas[0].AxisY.Title = "хуи с p";
+            chart1.ChartAreas[0].AxisX.Title = "Время, с";
+            chart1.ChartAreas[0].AxisY.Title = "Мгновенная мощность, Вт";
 
             chart1.ChartAreas[0].AxisX.MajorGrid.Enabled = true;
             chart1.ChartAreas[0].AxisY.MajorGrid.Enabled = true;
@@ -415,7 +384,8 @@ namespace ДЗ1
                 cal_integral_p.Add(0.00125 * p);
             }
 
-
+            chart1.ChartAreas[0].AxisX.Title = "Время, с";
+            chart1.ChartAreas[0].AxisY.Title = "Мощности, Вт";
 
 
             chart1.Series.Clear();
@@ -518,7 +488,6 @@ namespace ДЗ1
         private void PlotSignal_amplitude(string filename_i)
         {
             string[] data = getStringArray(filename_i);
-            List<double> amplitude = new List<double>();
             List<double> doubleLines_i = new List<double>();
 
 
@@ -540,13 +509,129 @@ namespace ДЗ1
             }
 
 
+            List<double> amp1 = new List<double>();
+            List<double> amp2 = new List<double>();
+            List<double> amp3 = new List<double>();
 
 
-
-
-            for (int z = 0; z < doubleLines_i.Count; z += 800)
+            for (int z = 0; z < doubleLines_i.Count; z += 80)
             {
-                int end = Math.Min(z + 512, doubleLines_i.Count);
+                int end = Math.Min(z + 64, doubleLines_i.Count);
+
+                List<double> values = new List<double>();
+                for (int j = z; j < end; j++)
+                {
+                    values.Add(doubleLines_i[j]);
+                }
+                
+                if (values.Count == 64)
+
+                {
+                    System.Numerics.Complex[] fft2 = FftSharp.FFT.Forward(values.ToArray());
+                    double freq1 = 800 / 64;
+                    int in1 = Convert.ToInt32(50 / freq1);
+                    int in2 = Convert.ToInt32(150 / freq1);
+                    int in3 = Convert.ToInt32(250 / freq1);
+                    List<double> amplitude = new List<double>();
+
+                    foreach (var complexNumber in fft2)
+                    {
+                        double im = complexNumber.Imaginary;
+                        double rel = complexNumber.Real;
+                        double absmnim = Math.Sqrt(Math.Pow(im, 2) + Math.Pow(rel, 2));
+                        amplitude.Add(absmnim);
+                    }
+                    amp1.Add(amplitude[in1]);
+                    amp2.Add(amplitude[in2]);
+                    amp3.Add(amplitude[in3]);
+                }
+            }
+
+            chart1.ChartAreas[0].AxisX.Title = "Время, с";
+            chart1.ChartAreas[0].AxisY.Title = "Амплитуда";
+
+            chart1.Series.Clear();
+            Series series5 = new Series();
+            series5.ChartType = SeriesChartType.Line;
+            series5.Name = "Amplitude1";
+            series5.Color = Color.Orange;
+
+            double time1 = 0;
+
+            for (int j = 0; j < data.Length; j += 1)
+            {
+                series5.Points.AddXY(time1, amp1[j]);
+                time1 += 0.1;
+            }
+            chart1.Series.Add(series5);
+
+
+            Series series6 = new Series();
+            series6.ChartType = SeriesChartType.Line;
+            series6.Name = "Amplitude2";
+            series6.Color = Color.Red;
+
+            double time2 = 0;
+
+            for (int j = 0; j < data.Length; j += 1)
+            {
+                series6.Points.AddXY(time2, amp2[j]);
+                time2 += 0.1;
+            }
+            chart1.Series.Add(series6);
+
+
+            Series series7 = new Series();
+            series7.ChartType = SeriesChartType.Line;
+            series7.Name = "Amplitude3";
+            series7.Color = Color.Purple;
+
+            double time3 = 0;
+
+            for (int j = 0; j < data.Length; j += 1)
+            {
+                series7.Points.AddXY(time3, amp3[j]);
+                time3 += 0.1;
+            }
+
+            chart1.Series.Add(series7);
+
+            chart1.ChartAreas[0].AxisX.Minimum = 0;
+            chart1.ChartAreas[0].AxisX.Maximum = 70;
+            chart1.ChartAreas[0].AxisY.Minimum = 0;
+            chart1.ChartAreas[0].AxisY.Maximum = 350;
+        }
+
+        private void PlotSignal_phase(string filename_i)
+        {
+            string[] data = getStringArray(filename_i);
+            List<double> doubleLines_i = new List<double>();
+
+
+            for (int d = 0; d < data.Length; d++)
+            {
+                string line = data[d];
+
+                string[] parts = line.Split('\t');
+
+                foreach (string part in parts)
+                {
+                    double number;
+                    if (double.TryParse(part, out number))
+                    {
+                        doubleLines_i.Add(number);
+                    }
+
+                }
+            }
+
+            List<double> phase1 = new List<double>();
+            List<double> phase2 = new List<double>();
+            List<double> phase3 = new List<double>();
+
+            for (int z = 0; z < doubleLines_i.Count; z += 80)
+            {
+                int end = Math.Min(z + 64, doubleLines_i.Count);
 
                 List<double> values = new List<double>();
                 for (int j = z; j < end; j++)
@@ -554,93 +639,84 @@ namespace ДЗ1
                     values.Add(doubleLines_i[j]);
                 }
 
-                Console.WriteLine("добавленные");
-                foreach (double vals in values)
-                {
-                    Console.WriteLine(vals);
-                }
-                Console.WriteLine("размер вжльюс");
-                Console.WriteLine(values.Count);
-                if (values.Count == 512)
+                if (values.Count == 64)
 
                 {
                     System.Numerics.Complex[] fft2 = FftSharp.FFT.Forward(values.ToArray());
+                    double[] phases = FftSharp.FFT.Phase(fft2);
+                    double freq1 = 800 / 64;
+                    int in1 = Convert.ToInt32(50 / freq1);
+                    int in2 = Convert.ToInt32(150 / freq1);
+                    int in3 = Convert.ToInt32(250 / freq1);
+                    List<double> phase = new List<double>();
+
                     foreach (var complexNumber in fft2)
                     {
                         double im = complexNumber.Imaginary;
                         double rel = complexNumber.Real;
                         double absmnim = Math.Sqrt(Math.Pow(im, 2) + Math.Pow(rel, 2));
-                        amplitude.Add(absmnim);
-                       
+                        phase.Add(absmnim);
                     }
-                    Console.WriteLine("кол-вво ");
-                    Console.WriteLine(fft2.Length);
-                }
-
-                /* System.Numerics.Complex[] fft2 = FftSharp.FFT.Forward(values.ToArray());
-                 foreach (var complexNumber in fft2)
-                 {
-                     double im = complexNumber.Imaginary;
-                     double rel = complexNumber.Real;
-                     double absmnim = Math.Sqrt(Math.Pow(im, 2) + Math.Pow(rel, 2));
-                     amplitude.Add(absmnim);
-                     Console.WriteLine(complexNumber);
-                 }
-                 Console.WriteLine("кол-вво ");
-                 Console.WriteLine(fft2.Length);
-
-             */
-            }
-            Console.WriteLine("amp " + amplitude.Count);
-            double delta_t = 0.0025;
-            double delta_f = 0.015625 / delta_t;
-
-            double[] freq = new double[amplitude.Count];
-            Console.WriteLine("ищем по три числа");
-            List<double> addedNumbers = new List<double>();
-
-            for (int i = 0; i < amplitude.Count; i++)
-            {
-                freq[i] = i * delta_f; //x
-                if (freq[i] == 50 || freq[i] == 150 || freq[i] == 250)
-                {
-                    addedNumbers.Add(amplitude[i]);
-                    Console.WriteLine(amplitude[i]);
+                    phase1.Add(phases[in1]);
+                    phase2.Add(phases[in2]);
+                    phase3.Add(phases[in3]);
                 }
             }
-            Console.WriteLine("искл");
 
-            Console.WriteLine(addedNumbers.Count);
+            chart1.ChartAreas[0].AxisX.Title = "Время, с";
+            chart1.ChartAreas[0].AxisY.Title = "Фаза";
 
+            chart1.Series.Clear();
+            Series series8 = new Series();
+            series8.ChartType = SeriesChartType.Line;
+            series8.Name = "Phase1";
+            series8.Color = Color.Orange;
 
+            double time4 = 0;
 
-
-
-
-
-
-
-
-
-
-
-
-            Series series5 = new Series();
-            series5.ChartType = SeriesChartType.Line;
-            series5.Name = "Amplitude1";
-            series5.Color = Color.Orange;
-
-            for (int j = 0; j < 76; j += 1)
+            for (int j = 0; j < data.Length; j += 1)
             {
-                series5.Points.AddXY(freq[j], amplitude[j]);
+                series8.Points.AddXY(time4, phase1[j]);
+                time4 += 0.1;
             }
-            chart1.Series.Add(series5);
+            chart1.Series.Add(series8);
 
 
-            /*foreach (double sds in amplitude)
+            Series series9 = new Series();
+            series9.ChartType = SeriesChartType.Line;
+            series9.Name = "Phase2";
+            series9.Color = Color.Red;
+
+            double time5 = 0;
+
+            for (int j = 0; j < data.Length; j += 1)
             {
-                Console.WriteLine(sds);
-            }*/
+                series9.Points.AddXY(time5, phase2[j]);
+                time5 += 0.1;
+            }
+            chart1.Series.Add(series9);
+
+
+            Series series10 = new Series();
+            series10.ChartType = SeriesChartType.Line;
+            series10.Name = "Phase3";
+            series10.Color = Color.Purple;
+
+            double time6 = 0;
+
+            for (int j = 0; j < data.Length; j += 1)
+            {
+                series10.Points.AddXY(time6, phase3[j]);
+                time6 += 0.1;
+            }
+
+            chart1.Series.Add(series10);
+
+            chart1.ChartAreas[0].AxisX.Minimum = 0;
+            chart1.ChartAreas[0].AxisX.Maximum = 70;
+            chart1.ChartAreas[0].AxisY.Minimum = -4;
+            chart1.ChartAreas[0].AxisY.Maximum = 4;
         }
+
     }
 }
